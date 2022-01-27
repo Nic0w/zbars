@@ -1,4 +1,4 @@
-use {
+use crate::{
     ffi,
     ZBarConfig,
     ZBarResult,

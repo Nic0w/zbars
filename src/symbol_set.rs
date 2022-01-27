@@ -1,4 +1,4 @@
-use {
+use crate::{
     ffi,
     image,
     symbol::ZBarSymbol
@@ -85,7 +85,7 @@ impl Iterator for SymbolIter {
 
 #[cfg(test)]
 mod test {
-    use prelude::*;
+    use crate::prelude::*;
     use std::path::Path;
     use super::*;
 

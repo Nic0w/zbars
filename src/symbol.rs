@@ -1,4 +1,4 @@
-use {
+use crate::{
     ffi,
     from_cstr,
     image,
@@ -7,7 +7,7 @@ use {
 };
 use std::ffi::CString;
 #[cfg(feature = "zbar_fork")]
-use ZBarOrientation;
+use crate::ZBarOrientation;
 
 
 pub struct ZBarSymbol {
@@ -152,7 +152,7 @@ mod test {
         ptr
     };
     use super::*;
-    use ZBarConfig;
+    use crate::ZBarConfig;
 
     #[cfg(feature = "zbar_fork")]
     const XML: &'static str =
@@ -289,7 +289,7 @@ mod test {
     }
 
     fn create_symbol_set_from(path: impl AsRef<Path>) -> ZBarSymbolSet {
-        use prelude::{
+        use crate::prelude::{
             ZBarImage,
             ZBarImageScanner
         };

@@ -4,7 +4,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-#![cfg_attr(feature = "cargo-clippy", warn(cast_ptr_alignment))]
+#![cfg_attr(feature = "cargo-clippy", warn(clippy::cast_ptr_alignment))]
 
 #[cfg(feature = "from_image")]
 extern crate image as image_crate;
@@ -38,7 +38,7 @@ use std::{
 
 pub mod decoder;
 #[allow(dead_code)]
-#[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+#[cfg_attr(feature = "cargo-clippy", allow(clippy::all))]
 mod ffi;
 pub mod format;
 pub mod image;
@@ -156,7 +156,7 @@ mod test {
 
     #[test]
     fn test_version() {
-        let (major, minor, patch) = version();
+        let (major, minor, _patch) = version();
         assert_ne!(major + minor, 0);
     }
 

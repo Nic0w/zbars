@@ -1,4 +1,4 @@
-use {
+use crate::{
     ffi,
     image::ZBarImage,
     symbol_set::ZBarSymbolSet,
@@ -96,7 +96,7 @@ impl ImageScannerBuilder {
 #[cfg(feature = "from_image")]
 mod test {
     use super::*;
-    use symbol::ZBarSymbol;
+    use crate::symbol::ZBarSymbol;
 
     #[test]
     fn test_qrcode() {
