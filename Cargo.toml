@@ -12,6 +12,7 @@ categories = ["api-bindings", "multimedia", "multimedia::images", "external-ffi-
 maintenance = { status = "experimental" }
 build = "build.rs"
 links = "zbar"
+edition="2021"
 
 [badges]
 travis-ci = { repository = "marhkb/zbars" }
