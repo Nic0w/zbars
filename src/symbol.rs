@@ -1,4 +1,4 @@
-use {
+use crate::{
     ffi,
     from_cstr,
     image,
@@ -7,7 +7,8 @@ use {
 };
 use std::ffi::CString;
 #[cfg(feature = "zbar_fork")]
-use ZBarOrientation;
+use crate::ZBarOrientation;
+
 
 
 pub struct ZBarSymbol {
@@ -175,8 +176,10 @@ impl Iterator for PolygonIter {
 
 #[cfg(test)]
 mod test {
+    use std::{ptr, path::Path};
+
     use super::*;
-    use ZBarConfig;
+    use crate::{ZBarConfig, prelude};
 
     #[cfg(feature = "zbar_fork")]
     const XML: &'static str = "<symbol type='QR-Code' quality='1' orientation='UP'>\

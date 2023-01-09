@@ -10,10 +10,6 @@ use crate::{
     ZBarSymbolType,
 };
 use std::ptr;
-use {
-    as_char_ptr, ffi, format::Format, image::ZBarImage, symbol_set::ZBarSymbolSet, ZBarConfig,
-    ZBarErrorType, ZBarResult, ZBarSymbolType,
-};
 
 pub struct ZBarProcessor {
     processor: *mut ffi::zbar_processor_s,

@@ -8,11 +8,6 @@ use crate::{
     ZBarResult,
     ZBarSymbolType
 };
-use std::ptr;
-use {
-    ffi, image::ZBarImage, symbol_set::ZBarSymbolSet, ZBarConfig, ZBarErrorType, ZBarResult,
-    ZBarSymbolType,
-};
 
 pub struct ZBarImageScanner {
     pub(crate) scanner: *mut ffi::zbar_image_scanner_s,

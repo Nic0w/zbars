@@ -1,3 +1,7 @@
+use std::{fmt, error::Error, rc::Rc, slice::from_raw_parts, ptr, ffi::c_void, path::Path};
+
+use image_crate::{ImageResult, DynamicImage, GenericImage, imageops, GenericImageView, Pixel};
+
 use crate::{
     as_char_ptr,
     ffi,

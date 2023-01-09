@@ -4,7 +4,6 @@ use crate::{
     symbol::ZBarSymbol
 };
 use std::mem;
-use {ffi, image, symbol::ZBarSymbol};
 
 pub struct ZBarSymbolSet {
     symbol_set: *const ffi::zbar_symbol_set_s,
@@ -102,6 +101,8 @@ impl Iterator for SymbolIter {
 mod test {
     use prelude::*;
     use std::path::Path;
+
+    use crate::prelude;
 
     #[test]
     fn test_size() {
