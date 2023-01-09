@@ -4,17 +4,18 @@ use crate::{
     symbol::ZBarSymbol
 };
 use std::mem;
+use {ffi, image, symbol::ZBarSymbol};
 
 pub struct ZBarSymbolSet {
     symbol_set: *const ffi::zbar_symbol_set_s,
-    image: *mut ffi::zbar_image_s
+    image: *mut ffi::zbar_image_s,
 }
 impl ZBarSymbolSet {
     /// Creates a new `SymbolSet` from raw data.
     pub(crate) fn from_raw(
         symbol_set: *const ffi::zbar_symbol_set_s,
-        image: *mut ffi::zbar_image_s) -> Option<Self>
-    {
+        image: *mut ffi::zbar_image_s,
+    ) -> Option<Self> {
         if !symbol_set.is_null() {
             let symbol_set = Self { symbol_set, image };
             image::set_ref(image, 1);
@@ -24,9 +25,13 @@ impl ZBarSymbolSet {
         }
     }
 
-    pub(crate) fn symbol_set(&self) -> *const ffi::zbar_symbol_set_s { self.symbol_set }
+    pub(crate) fn symbol_set(&self) -> *const ffi::zbar_symbol_set_s {
+        self.symbol_set
+    }
 
-    pub fn size(&self) -> i32 { unsafe { ffi::zbar_symbol_set_get_size(self.symbol_set) } }
+    pub fn size(&self) -> i32 {
+        unsafe { ffi::zbar_symbol_set_get_size(self.symbol_set) }
+    }
     /// Returns the first `Symbol` if one is present.
     ///
     /// # Examples
@@ -45,33 +50,43 @@ impl ZBarSymbolSet {
     /// ```
     pub fn first_symbol(&self) -> Option<ZBarSymbol> {
         ZBarSymbol::from_raw(
-            unsafe { ffi::zbar_symbol_set_first_symbol(self.symbol_set) }, self.image
+            unsafe { ffi::zbar_symbol_set_first_symbol(self.symbol_set) },
+            self.image,
         )
     }
 
-    pub fn iter(&self) -> SymbolIter { self.first_symbol().into() }
+    pub fn iter(&self) -> SymbolIter {
+        self.first_symbol().into()
+    }
 
     #[cfg(feature = "zbar_fork")]
     pub fn first_symbol_unfiltered(&self) -> Option<ZBarSymbol> {
         ZBarSymbol::from_raw(
-            unsafe { ffi::zbar_symbol_set_first_unfiltered(self.symbol_set) }, self.image
+            unsafe { ffi::zbar_symbol_set_first_unfiltered(self.symbol_set) },
+            self.image,
         )
     }
 }
 
 impl Clone for ZBarSymbolSet {
-    fn clone(&self) -> Self { Self::from_raw(self.symbol_set, self.image).unwrap() }
+    fn clone(&self) -> Self {
+        Self::from_raw(self.symbol_set, self.image).unwrap()
+    }
 }
 
 impl Drop for ZBarSymbolSet {
-    fn drop(&mut self) { image::set_ref(self.image, -1); }
+    fn drop(&mut self) {
+        image::set_ref(self.image, -1);
+    }
 }
 
 pub struct SymbolIter {
     symbol: Option<ZBarSymbol>,
 }
 impl From<Option<ZBarSymbol>> for SymbolIter {
-    fn from(symbol: Option<ZBarSymbol>) -> Self { Self { symbol } }
+    fn from(symbol: Option<ZBarSymbol>) -> Self {
+        Self { symbol }
+    }
 }
 impl Iterator for SymbolIter {
     type Item = ZBarSymbol;
@@ -85,16 +100,20 @@ impl Iterator for SymbolIter {
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use prelude::*;
     use std::path::Path;
-    use super::*;
 
     #[test]
-    fn test_size() { assert_eq!(create_symbol_set().size(), 2); }
+    fn test_size() {
+        assert_eq!(create_symbol_set().size(), 2);
+    }
 
     #[test]
     fn test_first_symbol() {
-        assert_eq!(create_symbol_set().first_symbol().unwrap().data(), "Hello World");
+        assert_eq!(
+            create_symbol_set().first_symbol().unwrap().data(),
+            "Hello World"
+        );
     }
 
     #[test]
@@ -108,7 +127,13 @@ mod test {
     #[test]
     #[cfg(feature = "zbar_fork")]
     fn test_first_symbol_unfiltered() {
-        assert_eq!(create_symbol_set().first_symbol_unfiltered().unwrap().data(), "Hello World");
+        assert_eq!(
+            create_symbol_set()
+                .first_symbol_unfiltered()
+                .unwrap()
+                .data(),
+            "Hello World"
+        );
     }
 
     fn create_symbol_set() -> ZBarSymbolSet {

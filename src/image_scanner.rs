@@ -1,3 +1,4 @@
+use std::ptr;
 use crate::{
     ffi,
     image::ZBarImage,
@@ -8,39 +9,53 @@ use crate::{
     ZBarSymbolType
 };
 use std::ptr;
+use {
+    ffi, image::ZBarImage, symbol_set::ZBarSymbolSet, ZBarConfig, ZBarErrorType, ZBarResult,
+    ZBarSymbolType,
+};
 
 pub struct ZBarImageScanner {
     pub(crate) scanner: *mut ffi::zbar_image_scanner_s,
 }
 impl ZBarImageScanner {
-    pub fn new() -> Self { Self::default() }
-    pub fn builder() -> ImageScannerBuilder { ImageScannerBuilder::new() }
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn builder() -> ImageScannerBuilder {
+        ImageScannerBuilder::new()
+    }
     pub fn set_config(
-        &self, symbol_type: ZBarSymbolType,
+        &self,
+        symbol_type: ZBarSymbolType,
         config: ZBarConfig,
-        value: i32) -> ZBarResult<()>
-    {
-        match unsafe { ffi::zbar_image_scanner_set_config(self.scanner, symbol_type, config, value) } {
+        value: i32,
+    ) -> ZBarResult<()> {
+        match unsafe {
+            ffi::zbar_image_scanner_set_config(self.scanner, symbol_type, config, value)
+        } {
             0 => Ok(()),
-            e => Err(e.into())
+            e => Err(e.into()),
         }
     }
     pub fn enable_cache(&self, enable: bool) {
-        unsafe { ffi::zbar_image_scanner_enable_cache(self.scanner, enable as i32); }
+        unsafe {
+            ffi::zbar_image_scanner_enable_cache(self.scanner, enable as i32);
+        }
     }
     pub fn recycle_image<T>(&self, image: &ZBarImage<T>) {
         unsafe { ffi::zbar_image_scanner_recycle_image(self.scanner, image.image()) }
     }
     pub fn results(&self) -> Option<ZBarSymbolSet> {
         ZBarSymbolSet::from_raw(
-            unsafe { ffi::zbar_image_scanner_get_results(self.scanner) }, ptr::null_mut()
+            unsafe { ffi::zbar_image_scanner_get_results(self.scanner) },
+            ptr::null_mut(),
         )
     }
     pub fn scan_image<T>(&self, image: &ZBarImage<T>) -> ZBarResult<ZBarSymbolSet> {
         match unsafe { ffi::zbar_scan_image(self.scanner, image.image()) } {
             -1 => Err(ZBarErrorType::Simple(-1)),
             // symbols can be unwrapped because image is surely scanned
-            _  => Ok(image.symbols().unwrap()),
+            _ => Ok(image.symbols().unwrap()),
         }
     }
 }
@@ -49,14 +64,20 @@ unsafe impl Send for ZBarImageScanner {}
 
 impl Default for ZBarImageScanner {
     fn default() -> Self {
-        let scanner = ZBarImageScanner { scanner: unsafe { ffi::zbar_image_scanner_create() } };
+        let scanner = ZBarImageScanner {
+            scanner: unsafe { ffi::zbar_image_scanner_create() },
+        };
         // safe to unwrap here
-        scanner.set_config(ZBarSymbolType::ZBAR_NONE, ZBarConfig::ZBAR_CFG_ENABLE, 0).unwrap();
+        scanner
+            .set_config(ZBarSymbolType::ZBAR_NONE, ZBarConfig::ZBAR_CFG_ENABLE, 0)
+            .unwrap();
         scanner
     }
 }
 impl Drop for ZBarImageScanner {
-    fn drop(&mut self) { unsafe { ffi::zbar_image_scanner_destroy(self.scanner) } }
+    fn drop(&mut self) {
+        unsafe { ffi::zbar_image_scanner_destroy(self.scanner) }
+    }
 }
 
 #[derive(Default)]
@@ -66,18 +87,24 @@ pub struct ImageScannerBuilder {
 }
 impl ImageScannerBuilder {
     pub fn new() -> Self {
-        Self { cache: false, config: vec![], }
+        Self {
+            cache: false,
+            config: vec![],
+        }
     }
     pub fn with_config(
         &mut self,
         symbol_type: ZBarSymbolType,
         config: ZBarConfig,
-        value: i32
-    ) -> &mut Self
-    {
-        self.config.push((symbol_type, config, value)); self
+        value: i32,
+    ) -> &mut Self {
+        self.config.push((symbol_type, config, value));
+        self
     }
-    pub fn with_cache(&mut self, cache: bool) -> &mut Self { self.cache = cache; self }
+    pub fn with_cache(&mut self, cache: bool) -> &mut Self {
+        self.cache = cache;
+        self
+    }
 
     pub fn build(&self) -> ZBarResult<ZBarImageScanner> {
         let scanner = ZBarImageScanner::new();

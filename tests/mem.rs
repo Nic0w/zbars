@@ -2,8 +2,8 @@
 #[cfg(test)]
 mod test_mem {
 
-    extern crate zbars;
     extern crate procinfo;
+    extern crate zbars;
 
     use self::zbars::prelude::*;
 
@@ -13,9 +13,7 @@ mod test_mem {
     fn test_mem_image_from_buf() {
         let mem_before = mem();
         for _ in 0..N {
-            ZBarImage::new(
-                500, 500, Format::from_label("Y800"), vec![0; 500 * 500]
-            ).unwrap();
+            ZBarImage::new(500, 500, Format::from_label("Y800"), vec![0; 500 * 500]).unwrap();
         }
         assert_mem(mem_before, N);
     }
@@ -26,9 +24,7 @@ mod test_mem {
         for _ in 0..N {
             let buf = vec![0; 500 * 500];
             let buf_slice = buf.as_slice();
-            ZBarImage::new(
-                500, 500, Format::from_label("Y800"), &buf_slice
-            ).unwrap();
+            ZBarImage::new(500, 500, Format::from_label("Y800"), &buf_slice).unwrap();
         }
         assert_mem(mem_before, N);
     }
@@ -49,14 +45,13 @@ mod test_mem {
 
         let mem_before = mem();
 
-        for _ in 0..N*10 {
+        for _ in 0..N * 10 {
             let symbol = symbols.first_symbol().unwrap();
             let _xml = symbol.xml();
         }
 
         assert_mem(mem_before, N);
     }
-
 
     fn loop_decode() -> ZBarSymbolSet {
         let image = ZBarImage::from_path("test/greetings.png").unwrap();
@@ -76,7 +71,9 @@ mod test_mem {
         scanner.scan_image(&image).unwrap()
     }
 
-    fn mem() -> usize { procinfo::pid::statm_self().unwrap().resident }
+    fn mem() -> usize {
+        procinfo::pid::statm_self().unwrap().resident
+    }
 
     fn assert_mem(mem_before: usize, n: usize) {
         let mem_after = mem();
@@ -84,7 +81,9 @@ mod test_mem {
         assert!(
             mem_after < mem_before + 8 * 1024,
             "Memory usage at start is {}KB, memory usage after {} loops is {}KB",
-            mem_before, n, mem_after
+            mem_before,
+            n,
+            mem_after
         );
     }
 }

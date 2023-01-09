@@ -1,15 +1,11 @@
 extern crate zbars;
 
-use std::{
-    thread,
-    time::Duration,
-};
+use std::{thread, time::Duration};
 use zbars::prelude::*;
 
 pub fn main() {
-
     // TODO: Image must be created after Processor::init. Investigate!
-//    let mut image = ZBarImage::from_path("test/qr_hello-world.png").unwrap();
+    //    let mut image = ZBarImage::from_path("test/qr_hello-world.png").unwrap();
 
     let processor = ZBarProcessor::builder()
         .threaded(true)

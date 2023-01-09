@@ -9,29 +9,12 @@ use crate::{
     symbol_set::ZBarSymbolSet,
     ZBarResult,
 };
-#[cfg(feature = "from_image")]
-use image_crate::{
-    self,
-    DynamicImage,
-    GenericImage,
-    imageops,
-    ImageResult,
-    Pixel,
-    GenericImageView
-};
-use std::{
-    error::Error,
-    rc::Rc,
-    fmt,
-    os::raw::c_void,
-    path::Path,
-    ptr,
-    slice::from_raw_parts
-};
 
 pub type Result<T> = ::std::result::Result<ZBarImage<T>, ZBarImageError>;
 
-unsafe extern fn image_destroyed_handler(_: *mut ffi::zbar_image_s) { trace!("free image"); }
+unsafe extern "C" fn image_destroyed_handler(_: *mut ffi::zbar_image_s) {
+    trace!("free image");
+}
 
 #[derive(Debug)]
 pub enum ZBarImageError {
@@ -46,7 +29,7 @@ impl fmt::Display for ZBarImageError {
                 "width and height don't match actual data length\
                  => width: {}; height: {}; actual data length: {}",
                 w, h, l
-            )
+            ),
         }
     }
 }
@@ -62,17 +45,27 @@ pub struct ZBarImage<T> {
     data: Rc<T>,
 }
 impl<T> ZBarImage<T> {
-    pub(crate) fn image(&self) -> *mut ffi::zbar_image_s { self.image }
-    fn set_ref(&self, refs: i32) { set_ref(self.image, refs) }
+    pub(crate) fn image(&self) -> *mut ffi::zbar_image_s {
+        self.image
+    }
+    fn set_ref(&self, refs: i32) {
+        set_ref(self.image, refs)
+    }
     /// Returns the `Format` of the pixels.
     pub fn format(&self) -> Format {
         unsafe { (ffi::zbar_image_get_format(self.image) as u32).into() }
     }
-    pub fn sequence(&self) -> u32 { unsafe { ffi::zbar_image_get_sequence(self.image) } }
+    pub fn sequence(&self) -> u32 {
+        unsafe { ffi::zbar_image_get_sequence(self.image) }
+    }
     /// Returns the width of the image in pixels
-    pub fn width(&self) -> u32 { unsafe { ffi::zbar_image_get_width(self.image) } }
+    pub fn width(&self) -> u32 {
+        unsafe { ffi::zbar_image_get_width(self.image) }
+    }
     /// Returns the height of the image in pixels
-    pub fn height(&self) -> u32 { unsafe { ffi::zbar_image_get_height(self.image) } }
+    pub fn height(&self) -> u32 {
+        unsafe { ffi::zbar_image_get_height(self.image) }
+    }
 
     /// Retrieves the image buffer.
     ///
@@ -88,7 +81,7 @@ impl<T> ZBarImage<T> {
         unsafe {
             from_raw_parts(
                 ffi::zbar_image_get_data(self.image) as *const u8,
-                ffi::zbar_image_get_data_length(self.image) as usize
+                ffi::zbar_image_get_data_length(self.image) as usize,
             )
         }
     }
@@ -113,18 +106,24 @@ impl<T> ZBarImage<T> {
     /// };
     /// ```
     pub fn symbols(&self) -> Option<ZBarSymbolSet> {
-        ZBarSymbolSet::from_raw(unsafe { ffi::zbar_image_get_symbols(self.image) }, self.image)
+        ZBarSymbolSet::from_raw(
+            unsafe { ffi::zbar_image_get_symbols(self.image) },
+            self.image,
+        )
     }
     pub fn set_symbols(&self, symbols: Option<&ZBarSymbolSet>) {
         unsafe {
             ffi::zbar_image_set_symbols(
                 self.image,
-                symbols.map_or(ptr::null(), ZBarSymbolSet::symbol_set)
+                symbols.map_or(ptr::null(), ZBarSymbolSet::symbol_set),
             )
         }
     }
     pub fn first_symbol(&self) -> Option<ZBarSymbol> {
-        ZBarSymbol::from_raw(unsafe { ffi::zbar_image_first_symbol(self.image) }, self.image)
+        ZBarSymbol::from_raw(
+            unsafe { ffi::zbar_image_first_symbol(self.image) },
+            self.image,
+        )
     }
     pub fn set_sequence(&self, sequence_num: u32) {
         unsafe { ffi::zbar_image_set_sequence(self.image, sequence_num) }
@@ -147,13 +146,13 @@ impl<T> ZBarImage<T> {
     /// Not implemented by ZBar itself.
     pub fn read(_path: impl AsRef<Path>) -> Option<Self> {
         //TODO: zbar.h days: TBD
-//        ZBarImage {
-//            image: unsafe {
-//                zbar_image_read(
-//                    path.as_ref().as_os_str().to_str().unwrap().as_bytes().as_ptr() as *mut i8
-//                )
-//            }
-//        }
+        //        ZBarImage {
+        //            image: unsafe {
+        //                zbar_image_read(
+        //                    path.as_ref().as_os_str().to_str().unwrap().as_bytes().as_ptr() as *mut i8
+        //                )
+        //            }
+        //        }
         unimplemented!("zbar.h days: zbar_image_read TBD")
     }
 }
@@ -172,8 +171,10 @@ impl<T> ZBarImage<T> {
             let mut crop = (0, 0, 0, 0);
             ffi::zbar_image_get_crop(
                 self.image,
-                &mut crop.0 as *mut u32, &mut crop.1 as *mut u32,
-                &mut crop.2 as *mut u32, &mut crop.3 as *mut u32
+                &mut crop.0 as *mut u32,
+                &mut crop.1 as *mut u32,
+                &mut crop.2 as *mut u32,
+                &mut crop.3 as *mut u32,
             );
             crop
         }
@@ -184,7 +185,10 @@ impl<T> ZBarImage<T> {
     }
 }
 
-impl<T> ZBarImage<T> where T: AsRef<[u8]> {
+impl<T> ZBarImage<T>
+where
+    T: AsRef<[u8]>,
+{
     /// ```compile_fail
     /// use zbars::prelude::*;
     ///
@@ -203,9 +207,12 @@ impl<T> ZBarImage<T> where T: AsRef<[u8]> {
                     image,
                     data.as_ref().as_ptr() as *mut c_void,
                     (data.as_ref().len() as u32).into(),
-                    Some(image_destroyed_handler)
+                    Some(image_destroyed_handler),
                 );
-                Ok(Self { image, data: data.into() })
+                Ok(Self {
+                    image,
+                    data: data.into(),
+                })
             }
         } else {
             Err(ZBarImageError::Len(width, height, data.as_ref().len()))
@@ -216,21 +223,21 @@ impl<T> ZBarImage<T> where T: AsRef<[u8]> {
 #[cfg(feature = "from_image")]
 impl ZBarImage<Vec<u8>> {
     /// Creates a `ZBarImage` from the given path.
-        ///
-        /// This method invokes `ZBarImage::from_dyn_image`. So if the image is already a Luma8
-        /// no additional memory will be allocated.
-        ///
-        /// # Examples
-        ///
-        /// ```
-        /// extern crate zbars;
-        ///
-        /// use zbars::image::ZBarImage;
-        ///
-        /// fn main() {
-        ///     let image = ZBarImage::from_path("test/code128.gif").unwrap();
-        /// }
-        /// ```
+    ///
+    /// This method invokes `ZBarImage::from_dyn_image`. So if the image is already a Luma8
+    /// no additional memory will be allocated.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// extern crate zbars;
+    ///
+    /// use zbars::image::ZBarImage;
+    ///
+    /// fn main() {
+    ///     let image = ZBarImage::from_path("test/code128.gif").unwrap();
+    /// }
+    /// ```
     pub fn from_path(path: impl AsRef<Path>) -> ImageResult<Self> {
         image_crate::open(&path).map(Self::from)
     }
@@ -257,7 +264,9 @@ impl ZBarImage<Vec<u8>> {
     ///     )
     /// );
     /// ```
-    pub fn from_dyn_image(image: DynamicImage) -> Self { image.into() }
+    pub fn from_dyn_image(image: DynamicImage) -> Self {
+        image.into()
+    }
 
     /// Creates a `ZBarImage` from a `GenericImage`.
     ///
@@ -283,10 +292,14 @@ impl ZBarImage<Vec<u8>> {
     /// );
     /// ```
     pub fn from_generic_image<I>(image: &I) -> Self
-        where I: GenericImage + 'static,
-              Vec<u8>: From<Vec<<<I as GenericImageView>::Pixel as Pixel>::Subpixel>>
+    where
+        I: GenericImage + 'static,
+        Vec<u8>: From<Vec<<<I as GenericImageView>::Pixel as Pixel>::Subpixel>>,
     {
-        Self::create_image(image.dimensions(), imageops::grayscale(image).into_raw().into())
+        Self::create_image(
+            image.dimensions(),
+            imageops::grayscale(image).into_raw().into(),
+        )
     }
 
     fn create_image(dimensions: (u32, u32), data: Vec<u8>) -> Self {
@@ -296,34 +309,43 @@ impl ZBarImage<Vec<u8>> {
 #[cfg(feature = "from_image")]
 impl From<DynamicImage> for ZBarImage<Vec<u8>> {
     fn from(image: DynamicImage) -> Self {
-        Self::create_image(image.dimensions(), match image {
-            DynamicImage::ImageLuma8(image) => image,
-            other                           => other.to_luma8()
-        }.into_raw())
+        Self::create_image(
+            image.dimensions(),
+            match image {
+                DynamicImage::ImageLuma8(image) => image,
+                other => other.to_luma8(),
+            }
+            .into_raw(),
+        )
     }
 }
 
 impl<T> Clone for ZBarImage<T> {
     fn clone(&self) -> Self {
-        let image = Self { image: self.image, data: self.data.clone() };
+        let image = Self {
+            image: self.image,
+            data: self.data.clone(),
+        };
         image.set_ref(1);
         image
     }
 }
 
 impl<T> Drop for ZBarImage<T> {
-    fn drop(&mut self) { self.set_ref(-1) }
+    fn drop(&mut self) {
+        self.set_ref(-1)
+    }
 }
 
 #[cfg(test)]
 mod test {
+    use super::*;
     #[cfg(feature = "from_image")]
     use image_crate::ImageBuffer;
-    use super::*;
 
     #[test]
     fn test_clone_owned() {
-        let image =  ZBarImage::new(2, 3, Y800, vec![0; 2 * 3]).unwrap();
+        let image = ZBarImage::new(2, 3, Y800, vec![0; 2 * 3]).unwrap();
         {
             let _clone = image.clone();
         }
@@ -333,7 +355,7 @@ mod test {
     #[test]
     fn test_clone_ref() {
         let data = vec![0; 2 * 3];
-        let image =  ZBarImage::new(2, 3, Y800, &data).unwrap();
+        let image = ZBarImage::new(2, 3, Y800, &data).unwrap();
         {
             let _clone = image.clone();
         }
@@ -345,17 +367,14 @@ mod test {
         let format = Format::from_label("Y800");
         let data = vec![0; 2 * 3];
         assert_eq!(
-            ZBarImage::new(
-                2, 3, format, &data
-            ).unwrap().format(),
+            ZBarImage::new(2, 3, format, &data).unwrap().format(),
             format
         );
     }
 
     #[test]
     fn test_sequence_set_and_get() {
-        let image = ZBarImage::new(2, 3, Format::from_label("Y800"), vec![0; 2 * 3])
-            .unwrap();
+        let image = ZBarImage::new(2, 3, Format::from_label("Y800"), vec![0; 2 * 3]).unwrap();
         assert_eq!(image.sequence(), 0);
         image.set_sequence(1);
         assert_eq!(image.sequence(), 1);
@@ -365,8 +384,7 @@ mod test {
 
     #[test]
     fn test_set_size_smaller() {
-        let image = ZBarImage::new(20, 30, Format::from_label("Y800"), vec![0; 20 * 30])
-            .unwrap();
+        let image = ZBarImage::new(20, 30, Format::from_label("Y800"), vec![0; 20 * 30]).unwrap();
         image.set_size(10, 12);
         assert_eq!(image.width(), 10);
         assert_eq!(image.height(), 12);
@@ -374,8 +392,7 @@ mod test {
 
     #[test]
     fn test_set_size_larger() {
-        let image = ZBarImage::new(20, 30, Format::from_label("Y800"), vec![0; 20 * 30])
-            .unwrap();
+        let image = ZBarImage::new(20, 30, Format::from_label("Y800"), vec![0; 20 * 30]).unwrap();
         image.set_size(100, 120);
         assert_eq!(image.width(), 100);
         assert_eq!(image.height(), 120);
@@ -410,8 +427,7 @@ mod test {
 
     #[test]
     fn test_symbols_get_and_set() {
-        let image = ZBarImage::new(20, 30, Format::from_label("Y800"), vec![0; 20 * 30])
-            .unwrap();
+        let image = ZBarImage::new(20, 30, Format::from_label("Y800"), vec![0; 20 * 30]).unwrap();
         assert!(image.symbols().is_none());
         image.set_symbols(None);
         assert!(image.symbols().is_none());
@@ -430,16 +446,14 @@ mod test {
     #[test]
     fn test_write() {
         let path = ::std::env::temp_dir().join("zbar_image");
-        let image = ZBarImage::new(2, 3, Format::from_label("Y800"), vec![0; 2 * 3])
-            .unwrap();
+        let image = ZBarImage::new(2, 3, Format::from_label("Y800"), vec![0; 2 * 3]).unwrap();
         assert!(image.write(&path).is_ok());
     }
 
     #[test]
     fn test_write_fail() {
         let path = Path::new("/nowhere/nothing");
-        let image = ZBarImage::new(2, 3, Format::from_label("Y800"), vec![0; 2 * 3])
-            .unwrap();
+        let image = ZBarImage::new(2, 3, Format::from_label("Y800"), vec![0; 2 * 3]).unwrap();
         assert!(image.write(&path).is_err());
     }
 
@@ -457,16 +471,14 @@ mod test {
     #[test]
     #[cfg(feature = "zbar_fork")]
     fn test_crop() {
-        let image = ZBarImage::new(20, 30, Format::from_label("Y800"), vec![0; 20 * 30])
-            .unwrap();
+        let image = ZBarImage::new(20, 30, Format::from_label("Y800"), vec![0; 20 * 30]).unwrap();
         assert_eq!(image.crop(), (0, 0, 20, 30));
     }
 
     #[test]
     #[cfg(feature = "zbar_fork")]
     fn test_set_crop_smaller() {
-        let image = ZBarImage::new(20, 30, Format::from_label("Y800"), vec![0; 20 * 30])
-            .unwrap();
+        let image = ZBarImage::new(20, 30, Format::from_label("Y800"), vec![0; 20 * 30]).unwrap();
         image.set_crop(5, 5, 10, 10);
         assert_eq!(image.crop(), (5, 5, 10, 10));
     }
@@ -474,23 +486,24 @@ mod test {
     #[test]
     #[cfg(feature = "zbar_fork")]
     fn test_set_crop_larger() {
-        let image = ZBarImage::new(20, 30, Format::from_label("Y800"), vec![0; 20 * 30])
-            .unwrap();
+        let image = ZBarImage::new(20, 30, Format::from_label("Y800"), vec![0; 20 * 30]).unwrap();
         image.set_crop(5, 50, 100, 200);
         assert_eq!(image.crop(), (5, 30, 15, 0));
     }
 
     #[test]
     #[cfg(feature = "from_image")]
-    fn test_from_path() { assert!(ZBarImage::from_path("test/code128.gif").is_ok()); }
+    fn test_from_path() {
+        assert!(ZBarImage::from_path("test/code128.gif").is_ok());
+    }
 
     #[test]
     #[cfg(feature = "from_image")]
     fn test_from_dyn_image_luma() {
         let data = vec![0, 0, 0];
-        let image = ZBarImage::from_dyn_image(
-            DynamicImage::ImageLuma8(ImageBuffer::from_vec(1, 3, data).unwrap())
-        );
+        let image = ZBarImage::from_dyn_image(DynamicImage::ImageLuma8(
+            ImageBuffer::from_vec(1, 3, data).unwrap(),
+        ));
         assert_eq!(image.data(), &[0, 0, 0]);
     }
 
@@ -498,9 +511,9 @@ mod test {
     #[cfg(feature = "from_image")]
     fn test_from_dyn_image_rgb() {
         let data = vec![0, 0, 0];
-        let image = ZBarImage::from_dyn_image(
-            DynamicImage::ImageRgb8(ImageBuffer::from_vec(1, 1, data).unwrap())
-        );
+        let image = ZBarImage::from_dyn_image(DynamicImage::ImageRgb8(
+            ImageBuffer::from_vec(1, 1, data).unwrap(),
+        ));
         assert_eq!(image.data(), &[0]);
     }
 
@@ -508,9 +521,9 @@ mod test {
     #[cfg(feature = "from_image")]
     fn test_from_generic_image_luma() {
         let data = vec![0, 0, 0];
-        let image = ZBarImage::from_generic_image(
-            &DynamicImage::ImageLuma8(ImageBuffer::from_vec(1, 3, data).unwrap())
-        );
+        let image = ZBarImage::from_generic_image(&DynamicImage::ImageLuma8(
+            ImageBuffer::from_vec(1, 3, data).unwrap(),
+        ));
         assert_eq!(image.data(), &[0, 0, 0]);
     }
 
@@ -518,9 +531,9 @@ mod test {
     #[cfg(feature = "from_image")]
     fn test_from_generic_image_rgb() {
         let data = vec![0, 0, 0];
-        let image = ZBarImage::from_generic_image(
-            &DynamicImage::ImageRgb8(ImageBuffer::from_vec(1, 1, data).unwrap())
-        );
+        let image = ZBarImage::from_generic_image(&DynamicImage::ImageRgb8(
+            ImageBuffer::from_vec(1, 1, data).unwrap(),
+        ));
         assert_eq!(image.data(), &[0]);
     }
 }

@@ -10,6 +10,10 @@ use crate::{
     ZBarSymbolType,
 };
 use std::ptr;
+use {
+    as_char_ptr, ffi, format::Format, image::ZBarImage, symbol_set::ZBarSymbolSet, ZBarConfig,
+    ZBarErrorType, ZBarResult, ZBarSymbolType,
+};
 
 pub struct ZBarProcessor {
     processor: *mut ffi::zbar_processor_s,
@@ -17,20 +21,25 @@ pub struct ZBarProcessor {
 impl ZBarProcessor {
     pub fn new(threaded: bool) -> Self {
         let mut processor = ZBarProcessor {
-            processor: unsafe { ffi::zbar_processor_create(threaded as i32) }
+            processor: unsafe { ffi::zbar_processor_create(threaded as i32) },
         };
-        processor.set_config(ZBarSymbolType::ZBAR_NONE, ZBarConfig::ZBAR_CFG_ENABLE, 0)
+        processor
+            .set_config(ZBarSymbolType::ZBAR_NONE, ZBarConfig::ZBAR_CFG_ENABLE, 0)
             // save to unwrap here
             .unwrap();
         processor
     }
-    pub fn builder() -> ZBarProcessorBuilder { ZBarProcessorBuilder::new() }
+    pub fn builder() -> ZBarProcessorBuilder {
+        ZBarProcessorBuilder::new()
+    }
 
     //Tested
     pub fn init(&self, video_device: impl AsRef<str>, enable_display: bool) -> ZBarResult<()> {
         match unsafe {
             ffi::zbar_processor_init(
-                self.processor, as_char_ptr(video_device), enable_display as i32,
+                self.processor,
+                as_char_ptr(video_device),
+                enable_display as i32,
             )
         } {
             0 => Ok(()),
@@ -63,7 +72,7 @@ impl ZBarProcessor {
             ffi::zbar_processor_force_format(
                 self.processor,
                 input_format.value().into(),
-                output_format.value().into()
+                output_format.value().into(),
             )
         } {
             0 => Ok(()),
@@ -75,14 +84,12 @@ impl ZBarProcessor {
         &mut self,
         symbol_type: ZBarSymbolType,
         config: ZBarConfig,
-        value: i32
-    ) -> ZBarResult<()>
-    {
-        match unsafe {
-            ffi::zbar_processor_set_config(self.processor, symbol_type, config, value)
-        } {
+        value: i32,
+    ) -> ZBarResult<()> {
+        match unsafe { ffi::zbar_processor_set_config(self.processor, symbol_type, config, value) }
+        {
             0 => Ok(()),
-            e => Err(e.into())
+            e => Err(e.into()),
         }
     }
 
@@ -109,7 +116,8 @@ impl ZBarProcessor {
     }
     pub fn get_results(&self) -> Option<ZBarSymbolSet> {
         ZBarSymbolSet::from_raw(
-            unsafe { ffi::zbar_processor_get_results(self.processor) }, ptr::null_mut()
+            unsafe { ffi::zbar_processor_get_results(self.processor) },
+            ptr::null_mut(),
         )
     }
 
@@ -117,7 +125,7 @@ impl ZBarProcessor {
     pub fn user_wait(&self, timeout: i32) -> ZBarResult<i32> {
         match unsafe { ffi::zbar_processor_user_wait(self.processor, timeout) } {
             -1 => Err(ZBarErrorType::Simple(-1)),
-            o  => Ok(o),
+            o => Ok(o),
         }
     }
 
@@ -125,8 +133,8 @@ impl ZBarProcessor {
     pub fn process_one(&self, timeout: i32) -> ZBarResult<Option<ZBarSymbolSet>> {
         match unsafe { ffi::zbar_process_one(self.processor, timeout) } {
             -1 => Err(ZBarErrorType::Simple(-1)),
-            0  => Ok(None),
-            _  => Ok(self.get_results())
+            0 => Ok(None),
+            _ => Ok(self.get_results()),
         }
     }
 
@@ -134,7 +142,7 @@ impl ZBarProcessor {
     pub fn process_image<T>(&self, image: &ZBarImage<T>) -> ZBarResult<ZBarSymbolSet> {
         match unsafe { ffi::zbar_process_image(self.processor, image.image()) } {
             -1 => Err(ZBarErrorType::Simple(-1)),
-            _  => Ok(image.symbols().unwrap()), // symbols can be unwrapped because image is surely scanned
+            _ => Ok(image.symbols().unwrap()), // symbols can be unwrapped because image is surely scanned
         }
     }
 }
@@ -157,7 +165,7 @@ impl ZBarProcessor {
             ffi::zbar_processor_set_control(self.processor, as_char_ptr(control_name), value)
         } {
             0 => Ok(()),
-            e => Err(ZBarErrorType::Simple(e))
+            e => Err(ZBarErrorType::Simple(e)),
         }
     }
 
@@ -177,20 +185,23 @@ impl ZBarProcessor {
         let mut value = 0;
         match unsafe {
             ffi::zbar_processor_get_control(
-                self.processor, as_char_ptr(control_name), &mut value as *mut i32
+                self.processor,
+                as_char_ptr(control_name),
+                &mut value as *mut i32,
             )
         } {
             0 => Ok(value),
-            e => Err(ZBarErrorType::Simple(e))
+            e => Err(ZBarErrorType::Simple(e)),
         }
     }
-
 }
 unsafe impl Send for ZBarProcessor {}
 unsafe impl Sync for ZBarProcessor {}
 
 impl Drop for ZBarProcessor {
-    fn drop(&mut self) { unsafe { ffi::zbar_processor_destroy(self.processor) } }
+    fn drop(&mut self) {
+        unsafe { ffi::zbar_processor_destroy(self.processor) }
+    }
 }
 
 #[derive(Default)]
@@ -213,23 +224,34 @@ impl ZBarProcessorBuilder {
             config: vec![],
         }
     }
-    pub fn threaded(&mut self, threaded: bool) -> &mut Self { self.threaded = threaded; self }
-    pub fn with_size(&mut self, size: Option<(u32, u32)>) -> &mut Self { self.size = size; self }
-    pub fn with_interface_version(&mut self, interface_version: Option<i32>) -> &mut Self {
-        self.interface_version = interface_version; self
+    pub fn threaded(&mut self, threaded: bool) -> &mut Self {
+        self.threaded = threaded;
+        self
     }
-    pub fn with_iomode(&mut self, iomode: Option<i32>) -> &mut Self { self.iomode = iomode; self }
+    pub fn with_size(&mut self, size: Option<(u32, u32)>) -> &mut Self {
+        self.size = size;
+        self
+    }
+    pub fn with_interface_version(&mut self, interface_version: Option<i32>) -> &mut Self {
+        self.interface_version = interface_version;
+        self
+    }
+    pub fn with_iomode(&mut self, iomode: Option<i32>) -> &mut Self {
+        self.iomode = iomode;
+        self
+    }
     pub fn with_format(&mut self, format: Option<(Format, Format)>) -> &mut Self {
-        self.format = format; self
+        self.format = format;
+        self
     }
     pub fn with_config(
         &mut self,
         symbol_type: ZBarSymbolType,
         config: ZBarConfig,
-        value: i32
-    ) -> &mut Self
-    {
-        self.config.push((symbol_type, config, value)); self
+        value: i32,
+    ) -> &mut Self {
+        self.config.push((symbol_type, config, value));
+        self
     }
     pub fn build(&self) -> ZBarResult<ZBarProcessor> {
         let mut processor = ZBarProcessor::new(self.threaded);
@@ -258,10 +280,7 @@ mod test {
 
     #[test]
     fn test_wrong_video_device() {
-        let processor = ZBarProcessor::builder()
-            .threaded(true)
-            .build()
-            .unwrap();
+        let processor = ZBarProcessor::builder().threaded(true).build().unwrap();
 
         assert!(processor.init("nothing", true).is_err())
     }

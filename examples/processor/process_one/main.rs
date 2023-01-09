@@ -25,8 +25,8 @@ pub fn main() {
     match processor.process_one(5000) {
         Ok(result) => match result {
             Some(symbols) => println!("{}", symbols.first_symbol().unwrap().data()),
-            None          => println!("timeout expired"),
-        }
-        Err(e)     => println!("error while processing: {}", e),
+            None => println!("timeout expired"),
+        },
+        Err(e) => println!("error while processing: {}", e),
     }
 }

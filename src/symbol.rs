@@ -1,4 +1,4 @@
-use crate::{
+use {
     ffi,
     from_cstr,
     image,
@@ -7,19 +7,19 @@ use crate::{
 };
 use std::ffi::CString;
 #[cfg(feature = "zbar_fork")]
-use crate::ZBarOrientation;
+use ZBarOrientation;
 
 
 pub struct ZBarSymbol {
     symbol: *const ffi::zbar_symbol_s,
-    image: *mut ffi::zbar_image_s
+    image: *mut ffi::zbar_image_s,
 }
 impl ZBarSymbol {
     /// Creates a new `SymbolSet` from raw data.
     pub(crate) fn from_raw(
         symbol: *const ffi::zbar_symbol_s,
-        image: *mut ffi::zbar_image_s) -> Option<Self>
-    {
+        image: *mut ffi::zbar_image_s,
+    ) -> Option<Self> {
         if !symbol.is_null() {
             let symbol = Self { symbol, image };
             image::set_ref(image, 1);
@@ -48,8 +48,12 @@ impl ZBarSymbol {
     ///     }
     /// };
     /// ```
-    pub fn data(&self) -> &str { unsafe { from_cstr(ffi::zbar_symbol_get_data(self.symbol)) } }
-    pub fn quality(&self) -> i32 { unsafe { ffi::zbar_symbol_get_quality(self.symbol) } }
+    pub fn data(&self) -> &str {
+        unsafe { from_cstr(ffi::zbar_symbol_get_data(self.symbol)) }
+    }
+    pub fn quality(&self) -> i32 {
+        unsafe { ffi::zbar_symbol_get_quality(self.symbol) }
+    }
     /// Retrieve the current cache count
     pub fn count(&self) -> i32 {
         //TODO: Specify what count is
@@ -57,20 +61,22 @@ impl ZBarSymbol {
          * @returns < 0 if symbol is still uncertain.
          * @returns 0 if symbol is newly verified.
          * @returns > 0 for duplicate symbols
-        */
+         */
         unsafe { ffi::zbar_symbol_get_count(self.symbol) }
     }
-    pub fn loc_size(&self) -> u32 { unsafe { ffi::zbar_symbol_get_loc_size(self.symbol) } }
+    pub fn loc_size(&self) -> u32 {
+        unsafe { ffi::zbar_symbol_get_loc_size(self.symbol) }
+    }
     pub fn loc_x(&self, index: u32) -> Option<u32> {
         match unsafe { ffi::zbar_symbol_get_loc_x(self.symbol, index) } {
             -1 => None,
-            x  => Some(x as u32),
+            x => Some(x as u32),
         }
     }
     pub fn loc_y(&self, index: u32) -> Option<u32> {
         match unsafe { ffi::zbar_symbol_get_loc_y(self.symbol, index) } {
             -1 => None,
-            y  => Some(y as u32),
+            y => Some(y as u32),
         }
     }
     fn loc(&self, index: u32) -> Option<(u32, u32)> {
@@ -80,63 +86,85 @@ impl ZBarSymbol {
         Self::from_raw(unsafe { ffi::zbar_symbol_next(self.symbol) }, self.image)
     }
     pub fn components(&self) -> Option<ZBarSymbolSet> {
-        ZBarSymbolSet::from_raw(unsafe { ffi::zbar_symbol_get_components(self.symbol) }, self.image)
+        ZBarSymbolSet::from_raw(
+            unsafe { ffi::zbar_symbol_get_components(self.symbol) },
+            self.image,
+        )
     }
     pub fn first_component(&self) -> Option<Self> {
-        Self::from_raw(unsafe { ffi::zbar_symbol_first_component(self.symbol) }, self.image)
+        Self::from_raw(
+            unsafe { ffi::zbar_symbol_first_component(self.symbol) },
+            self.image,
+        )
     }
     /// Returns a xml representation of the `Symbol`.
     pub fn xml(&self) -> &str {
         let cstr_buf = CString::new("").unwrap();
         unsafe {
-            from_cstr(
-                ffi::zbar_symbol_xml(
-                    self.symbol,
-                    cstr_buf.as_ptr() as *mut *mut i8,
-                    &mut 0_u32 as *mut u32
-                )
-            )
+            from_cstr(ffi::zbar_symbol_xml(
+                self.symbol,
+                cstr_buf.as_ptr() as *mut *mut i8,
+                &mut 0_u32 as *mut u32,
+            ))
         }
     }
 
-    pub fn polygon(&self) -> Polygon { self.clone().into() }
+    pub fn polygon(&self) -> Polygon {
+        self.clone().into()
+    }
 }
 
 #[cfg(feature = "zbar_fork")]
 impl ZBarSymbol {
-    pub fn configs(&self) -> u32 { unsafe { ffi::zbar_symbol_get_configs(self.symbol) } }
-    pub fn modifiers(&self) -> u32 { unsafe { ffi::zbar_symbol_get_modifiers(self.symbol) } }
+    pub fn configs(&self) -> u32 {
+        unsafe { ffi::zbar_symbol_get_configs(self.symbol) }
+    }
+    pub fn modifiers(&self) -> u32 {
+        unsafe { ffi::zbar_symbol_get_modifiers(self.symbol) }
+    }
     pub fn orientation(&self) -> ZBarOrientation {
-        unsafe { ffi::zbar_symbol_get_orientation (self.symbol) }
+        unsafe { ffi::zbar_symbol_get_orientation(self.symbol) }
     }
 }
 
 impl Clone for ZBarSymbol {
-    fn clone(&self) -> Self { Self::from_raw(self.symbol, self.image).unwrap() }
+    fn clone(&self) -> Self {
+        Self::from_raw(self.symbol, self.image).unwrap()
+    }
 }
 impl Drop for ZBarSymbol {
-    fn drop(&mut self) { image::set_ref(self.image, -1) }
+    fn drop(&mut self) {
+        image::set_ref(self.image, -1)
+    }
 }
 
 pub struct Polygon {
-    symbol: ZBarSymbol
+    symbol: ZBarSymbol,
 }
 impl Polygon {
-    pub fn point(&self, index: u32) -> Option<(u32, u32)> { self.symbol.loc(index) }
-    pub fn iter(&self) -> PolygonIter { self.symbol.clone().into() }
+    pub fn point(&self, index: u32) -> Option<(u32, u32)> {
+        self.symbol.loc(index)
+    }
+    pub fn iter(&self) -> PolygonIter {
+        self.symbol.clone().into()
+    }
 }
-impl From<ZBarSymbol> for Polygon  {
-    fn from(symbol: ZBarSymbol) -> Self { Self { symbol } }
+impl From<ZBarSymbol> for Polygon {
+    fn from(symbol: ZBarSymbol) -> Self {
+        Self { symbol }
+    }
 }
 
 pub struct PolygonIter {
     symbol: ZBarSymbol,
     index: u32,
 }
-impl From<ZBarSymbol> for PolygonIter   {
-    fn from(symbol: ZBarSymbol) -> Self { PolygonIter { symbol, index: 0 } }
+impl From<ZBarSymbol> for PolygonIter {
+    fn from(symbol: ZBarSymbol) -> Self {
+        PolygonIter { symbol, index: 0 }
+    }
 }
-impl Iterator for PolygonIter  {
+impl Iterator for PolygonIter {
     type Item = (u32, u32);
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.symbol.loc(self.index);
@@ -147,30 +175,26 @@ impl Iterator for PolygonIter  {
 
 #[cfg(test)]
 mod test {
-    use std::{
-        path::Path,
-        ptr
-    };
     use super::*;
-    use crate::ZBarConfig;
+    use ZBarConfig;
 
     #[cfg(feature = "zbar_fork")]
-    const XML: &'static str =
-        "<symbol type='QR-Code' quality='1' orientation='UP'>\
+    const XML: &'static str = "<symbol type='QR-Code' quality='1' orientation='UP'>\
             <data>\
                 <![CDATA[Hello World]]>\
             </data>\
         </symbol>";
     #[cfg(not(feature = "zbar_fork"))]
-    const XML: &'static str =
-        "<symbol type='QR-Code' quality='1'>\
+    const XML: &'static str = "<symbol type='QR-Code' quality='1'>\
             <data>\
                 <![CDATA[Hello World]]>\
             </data>\
         </symbol>";
 
     #[test]
-    fn test_from_raw() { create_symbol_en(); }
+    fn test_from_raw() {
+        create_symbol_en();
+    }
 
     #[test]
     fn test_from_raw_null() {
@@ -179,17 +203,26 @@ mod test {
 
     #[test]
     fn test_symbol_type() {
-        assert_eq!(create_symbol_en().symbol_type(), ZBarSymbolType::ZBAR_QRCODE);
+        assert_eq!(
+            create_symbol_en().symbol_type(),
+            ZBarSymbolType::ZBAR_QRCODE
+        );
     }
 
     #[test]
-    fn test_data() { assert_eq!(create_symbol_en().data(), "Hello World"); }
+    fn test_data() {
+        assert_eq!(create_symbol_en().data(), "Hello World");
+    }
 
     #[test]
-    fn test_quality() { assert!(create_symbol_en().quality() > 0); }
+    fn test_quality() {
+        assert!(create_symbol_en().quality() > 0);
+    }
 
     #[test]
-    fn test_count() { assert_eq!(create_symbol_en().count(), 0); }
+    fn test_count() {
+        assert_eq!(create_symbol_en().count(), 0);
+    }
 
     #[test]
     fn test_loc_size() {
@@ -200,9 +233,18 @@ mod test {
     fn test_loc_x_y() {
         let symbol = create_symbol_en();
         assert_eq!((symbol.loc_x(0).unwrap(), symbol.loc_y(0).unwrap()), (6, 6));
-        assert_eq!((symbol.loc_x(1).unwrap(), symbol.loc_y(1).unwrap()), (6, 142));
-        assert_eq!((symbol.loc_x(2).unwrap(), symbol.loc_y(2).unwrap()), (142, 142));
-        assert_eq!((symbol.loc_x(3).unwrap(), symbol.loc_y(3).unwrap()), (142, 6));
+        assert_eq!(
+            (symbol.loc_x(1).unwrap(), symbol.loc_y(1).unwrap()),
+            (6, 142)
+        );
+        assert_eq!(
+            (symbol.loc_x(2).unwrap(), symbol.loc_y(2).unwrap()),
+            (142, 142)
+        );
+        assert_eq!(
+            (symbol.loc_x(3).unwrap(), symbol.loc_y(3).unwrap()),
+            (142, 6)
+        );
         assert!(symbol.loc_x(4).is_none());
         assert!(symbol.loc_y(4).is_none());
     }
@@ -215,7 +257,6 @@ mod test {
         assert_eq!(symbol.loc(2).unwrap(), (142, 142));
         assert_eq!(symbol.loc(3).unwrap(), (142, 6));
         assert!(symbol.loc(4).is_none());
-
     }
 
     #[test]
@@ -238,7 +279,9 @@ mod test {
     }
 
     #[test]
-    fn test_xml() { assert_eq!(create_symbol_en().xml(), XML); }
+    fn test_xml() {
+        assert_eq!(create_symbol_en().xml(), XML);
+    }
 
     #[test]
     fn test_polygon() {
@@ -277,19 +320,26 @@ mod test {
     #[test]
     #[cfg(feature = "zbar_fork")]
     fn orientation() {
-        assert_eq!(create_symbol_en().orientation(), ZBarOrientation::ZBAR_ORIENT_UP);
+        assert_eq!(
+            create_symbol_en().orientation(),
+            ZBarOrientation::ZBAR_ORIENT_UP
+        );
     }
 
     fn create_symbol_en() -> ZBarSymbol {
-        create_symbol_set_from("test/qr_hello-world.png").first_symbol().unwrap()
+        create_symbol_set_from("test/qr_hello-world.png")
+            .first_symbol()
+            .unwrap()
     }
 
     fn create_symbol_multi() -> ZBarSymbol {
-        create_symbol_set_from("test/greetings.png").first_symbol().unwrap()
+        create_symbol_set_from("test/greetings.png")
+            .first_symbol()
+            .unwrap()
     }
 
     fn create_symbol_set_from(path: impl AsRef<Path>) -> ZBarSymbolSet {
-        use crate::prelude::{
+        use prelude::{
             ZBarImage,
             ZBarImageScanner
         };

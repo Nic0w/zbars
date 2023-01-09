@@ -1,10 +1,8 @@
 #![deny(unused_extern_crates)]
-
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
-
-#![cfg_attr(feature = "cargo-clippy", warn(clippy::cast_ptr_alignment))]
+#![cfg_attr(feature = "cargo-clippy", warn(cast_ptr_alignment))]
 
 #[cfg(feature = "from_image")]
 extern crate image as image_crate;
@@ -12,28 +10,16 @@ extern crate image as image_crate;
 extern crate log;
 
 pub use ffi::{
-    zbar_color_e as ZBarColor,
-    zbar_config_e as ZBarConfig,
-    zbar_error_e as ZBarError,
-    zbar_symbol_type_e as ZBarSymbolType
+    zbar_color_e as ZBarColor, zbar_config_e as ZBarConfig, zbar_error_e as ZBarError,
+    zbar_symbol_type_e as ZBarSymbolType,
 };
 #[cfg(feature = "zbar_fork")]
-pub use ffi::{
-    zbar_modifier_e as ZBarModifier,
-    zbar_orientation_e as ZBarOrientation
-};
+pub use ffi::{zbar_modifier_e as ZBarModifier, zbar_orientation_e as ZBarOrientation};
 use std::{
     error::Error,
-    ffi::{
-        CStr,
-        OsString,
-    },
-    fmt,
-    mem,
-    os::raw::{
-        c_char,
-        c_void
-    },
+    ffi::{CStr, OsString},
+    fmt, mem,
+    os::raw::{c_char, c_void},
 };
 
 pub mod decoder;
@@ -42,18 +28,18 @@ pub mod decoder;
 mod ffi;
 pub mod format;
 pub mod image;
+pub mod image_scanner;
+pub mod prelude;
+pub mod processor;
 pub mod symbol;
 pub mod symbol_set;
-pub mod image_scanner;
-pub mod processor;
-pub mod prelude;
 
 pub type ZBarResult<T> = Result<T, ZBarErrorType>;
 
 #[derive(Debug)]
 pub enum ZBarErrorType {
     Simple(i32),
-    Complex(ZBarError)
+    Complex(ZBarError),
 }
 impl Error for ZBarErrorType {}
 impl fmt::Display for ZBarErrorType {
@@ -61,7 +47,7 @@ impl fmt::Display for ZBarErrorType {
         use ZBarError::*;
 
         match *self {
-            ZBarErrorType::Simple(e)  => write!(f, "ZBar simple error {}", e),
+            ZBarErrorType::Simple(e) => write!(f, "ZBar simple error {}", e),
             ZBarErrorType::Complex(e) => match e {
                 ZBAR_ERR_NOMEM => write!(f, "out of memory"),
                 ZBAR_ERR_INTERNAL => write!(f, "internal library error"),
@@ -75,21 +61,26 @@ impl fmt::Display for ZBarErrorType {
                 ZBAR_ERR_CLOSED => write!(f, "output window is closed"),
                 ZBAR_ERR_WINAPI => write!(f, "windows system error"),
                 ZBAR_ERR_NUM => write!(f, "number of error codes"),
-                ZBAR_OK => write!(f, "success")
-             }
+                ZBAR_OK => write!(f, "success"),
+            },
         }
     }
 }
 
 impl From<i32> for ZBarErrorType {
-    fn from(error: i32) -> Self { ZBarErrorType::Complex(unsafe { mem::transmute(error) } ) }
+    fn from(error: i32) -> Self {
+        ZBarErrorType::Complex(unsafe { mem::transmute(error) })
+    }
 }
 
 pub fn version() -> (u32, u32, u32) {
     unsafe {
         let mut version = (0, 0, 0);
         ffi::zbar_version(
-            &mut version.0 as *mut u32, &mut version.1 as *mut u32, &mut version.2 as *mut u32);
+            &mut version.0 as *mut u32,
+            &mut version.1 as *mut u32,
+            &mut version.2 as *mut u32,
+        );
         version
     }
 }
@@ -121,7 +112,9 @@ pub fn orientation_name(orientation: ZBarOrientation) -> &'static str {
     unsafe { from_cstr(ffi::zbar_get_orientation_name(orientation)) }
 }
 
-pub fn parse_config(config_string: impl AsRef<str>) -> ZBarResult<(ZBarSymbolType, ZBarConfig, i32)> {
+pub fn parse_config(
+    config_string: impl AsRef<str>,
+) -> ZBarResult<(ZBarSymbolType, ZBarConfig, i32)> {
     let mut symbol_type = ZBarSymbolType::ZBAR_NONE;
     let mut config = ZBarConfig::ZBAR_CFG_ENABLE;
     let mut value = 0;
@@ -133,7 +126,7 @@ pub fn parse_config(config_string: impl AsRef<str>) -> ZBarResult<(ZBarSymbolTyp
             &mut value as *mut i32,
         ) {
             0 => Ok((symbol_type, config, value)),
-            e => Err(ZBarErrorType::Simple(e))
+            e => Err(ZBarErrorType::Simple(e)),
         }
     }
 }
@@ -148,7 +141,9 @@ unsafe fn as_char_ptr(value: impl AsRef<str>) -> *const i8 {
     OsString::from(value.as_ref()).to_str().unwrap().as_ptr() as *const i8
 }
 
-unsafe fn from_cstr(ptr: *const c_char) -> &'static str { CStr::from_ptr(ptr).to_str().unwrap() }
+unsafe fn from_cstr(ptr: *const c_char) -> &'static str {
+    CStr::from_ptr(ptr).to_str().unwrap()
+}
 
 #[cfg(test)]
 mod test {

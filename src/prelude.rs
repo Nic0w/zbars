@@ -9,6 +9,5 @@ pub use crate::{
     processor::ZBarProcessor,
     symbol::ZBarSymbol,
     symbol_set::ZBarSymbolSet,
-    ZBarConfig,
-    ZBarSymbolType,
+    ZBarConfig, ZBarSymbolType,
 };
